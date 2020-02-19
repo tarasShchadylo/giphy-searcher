@@ -1,7 +1,7 @@
 import ('../styles/main.scss');
 
 
-export default function() {
+export default function () {
   function createNode(element) {
     return document.createElement(element);
   }
@@ -13,36 +13,58 @@ export default function() {
   const ul = document.getElementById("items");
   const input = document.querySelector("#search-js");
 
-  const api = "http://api.giphy.com/v1/gifs/search?q=";
-  const apiKey = "&api_key=LPL5n8UmdV6tgV2oY5aB14s1OvyTZ3qY";
-  const limit = `&limit=8`;
+  const api = "http://api.giphy.com/v1/gifs/random";
+  const apiKey = "?api_key=LPL5n8UmdV6tgV2oY5aB14s1OvyTZ3qY";
+  const limit = 8;
+  let tag = '';
 
   setup();
 
   function setup() {
-    const button = document.querySelector("#find-js");
+    const buttonFind = document.querySelector("#find-js");
+    const buttonRefresh = document.querySelector("#refresh-js");
 
-    const setupData = () => {
-      const nameGif = input.value;
-      const url = `${api}${nameGif}${apiKey}${limit}`;
+    const setupData = (isRefresh) => {
+      if (ul.lastElementChild) {
+        ul.innerHTML = "";
+      }
+      const nameGif = isRefresh ? tag : '&tag=' + input.value;
+      if (!nameGif) {
+        return;
+      }
+      const url = `${api}${apiKey}${nameGif}`;
+      const result = [];
+      const requestList = [];
 
-      fetch(url)
-        .then(response => response.json())
-        .then(resp => {
-          let dataArray = resp.data;
-          outputInputData(dataArray);
-        })
-        .catch(function(error) {
-          console.log(error);
-        });
+      for (let i = 0; i < limit; i++) {
+        requestList.push(
+          fetch(url)
+            .then(response => response.json())
+            .then(resp => {
+              result.push(resp);
+            })
+            .catch(function (error) {
+              console.log(error);
+            })
+        );
+      }
 
-      input.value = "";
+      Promise.all(requestList).finally(() => {
+        outputInputData(result);
+        input.value = "";
+        tag = nameGif;
+      });
     };
 
-    button.addEventListener("click", setupData);
-    input.addEventListener("keyup", function(event) {
+    buttonFind.addEventListener("click", () => {
+      setupData(false);
+    });
+    buttonRefresh.addEventListener("click", () => {
+      setupData(true);
+    });
+    input.addEventListener("keyup", function (event) {
       if (event.keyCode === 13) {
-        setupData();
+        setupData(false);
       }
     });
   }
@@ -64,11 +86,11 @@ export default function() {
       size.classList.add("toggle-size-photo");
       url.classList.add("url-link-gif");
 
-      img.src = `${giphy.images.downsized_large.url}`;
-      h3.textContent = `${giphy.title}`;
+      img.src = `${giphy.data.images.downsized_large.url}`;
+      h3.textContent = `${giphy.data.title}`;
       spanBtn.textContent = "i";
       url.textContent = "Original";
-      url.href = `${giphy.url}`;
+      url.href = `${giphy.data.url}`;
       url.target = "_blank";
       url.style.display = "none";
 
@@ -96,11 +118,11 @@ export default function() {
 
         if (
           size.textContent ===
-          `${giphy.images.downsized_large.width}x${giphy.images.downsized_large.height}`
+          `${giphy.data.images.downsized_large.width}x${giphy.data.images.downsized_large.height}`
         ) {
           size.textContent = "";
         } else {
-          size.textContent = `${giphy.images.downsized_large.width}x${giphy.images.downsized_large.height}`;
+          size.textContent = `${giphy.data.images.downsized_large.width}x${giphy.data.images.downsized_large.height}`;
         }
 
         if (url.style.display === "none") {
